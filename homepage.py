@@ -53,6 +53,8 @@ def main():
    # Fetch both GA data and Search Console data
    ga_data, event_data = fetch_ga4_extended_data()
    search_data = fetch_search_console_data()
+
+   st.write(ga_data)
    
    # First column - GA4 Metrics and Insights
    col1, col2 = st.columns(2)
