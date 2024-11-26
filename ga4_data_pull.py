@@ -270,11 +270,15 @@ def summarize_last_month_data(acquisition_data, event_data):
     for col in numeric_cols:
         last_month_data[col] = pd.to_numeric(last_month_data[col], errors='coerce').fillna(0)
     
-    # Merge with event data to include leads
+    # Merge with event data to include leads (Event Count)
     last_month_data = last_month_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
 
-    # Fill missing values in Event Count with 0 for pages without leads
-    last_month_data['Event Count'].fillna(0, inplace=True)
+    # Convert 'Event Count' to numeric, coerce non-numeric values to NaN, then fill NaN with 0
+    last_month_data['Event Count'] = pd.to_numeric(last_month_data['Event Count'], errors='coerce').fillna(0)
+
+    # Check if the 'Event Count' column is numeric after conversion
+    if not pd.api.types.is_numeric_dtype(last_month_data['Event Count']):
+        raise ValueError("Event Count column contains non-numeric data.")
 
     # Calculate total metrics for last month
     total_visitors = last_month_data["Total Visitors"].sum()
@@ -291,7 +295,7 @@ def summarize_last_month_data(acquisition_data, event_data):
         "Value": [total_visitors, new_visitors, total_sessions, total_leads, avg_time_on_site]
     })
 
-    # Summarize acquisition metrics
+    # Summarize acquisition metrics (using Event Count for leads)
     acquisition_summary = last_month_data.groupby("Session Source").agg(
         Visitors=("Total Visitors", "sum"),
         Sessions=("Sessions", "sum"),
@@ -299,6 +303,7 @@ def summarize_last_month_data(acquisition_data, event_data):
     ).reset_index()
     
     return summary_df, acquisition_summary
+
 
 
 def generate_all_metrics_copy(current_summary_df, last_month_summary_df):
