@@ -49,78 +49,70 @@ def display_report_with_llm(summary_func, llm_prompt):
    return llm_response
 
 
-# Run main function
 def main():
-   
-   ga_data = fetch_ga4_extended_data()
+   # Fetch both GA data and Search Console data
+   ga_data, event_data = fetch_ga4_extended_data()
    search_data = fetch_search_console_data()
    
-   
-   col1, col2, = st.columns(2)
+   # First column - GA4 Metrics and Insights
+   col1, col2 = st.columns(2)
    
    with col1:
       st.markdown("<h3 style='text-align: center;'>Web Performance Overview</h3>", unsafe_allow_html=True)
-      #st.write(ga_data)
-      generate_all_metrics_copy(summarize_monthly_data(ga_data)[0], summarize_last_month_data(ga_data)[0])
       
-      # Generate and display GA4 metrics
-      current_summary = summarize_monthly_data(ga_data)[0]
-      last_month_summary = summarize_last_month_data(ga_data)[0]
+      # Summarize monthly data with leads now included
+      current_summary = summarize_monthly_data(ga_data, event_data)[0]
+      last_month_summary = summarize_last_month_data(ga_data, event_data)[0]
       
-      # Use LLM to generate insights based on GA data
+      # Display GA4 metrics (Updated with the new leads data)
+      generate_all_metrics_copy(current_summary, last_month_summary)
+      
+      # LLM insights based on GA data
       ga_llm_prompt = """
          Based on the following website performance metrics, provide a short analysis. Highlight key improvements, areas needing attention, 
          and how these metrics compare to typical industry standards. Limit your response to 2-3 bullet points.
          """
       
-      # Combine summaries into data string for LLM
+      # Combine current summary into a string for LLM processing
       metric_summary_text = "\n".join([f"{row['Metric']}: {row['Value']}" for _, row in current_summary.iterrows()])
-      
       ga_insights = query_gpt(ga_llm_prompt, metric_summary_text)
       
       st.markdown("### Insights from AI")
       st.markdown(ga_insights)
 
-
+   # Second column - Acquisition Overview (with Pie Chart and Source Descriptions)
    with col2:
       st.markdown("<h3 style='text-align: center;'>Acquisition Overview</h3>", unsafe_allow_html=True)
       acq_col1, acq_col2 = st.columns(2)
    with acq_col1:
-      plot_acquisition_pie_chart_plotly(summarize_monthly_data(ga_data)[1])
+      plot_acquisition_pie_chart_plotly(summarize_monthly_data(ga_data, event_data)[1])
    with acq_col2:
-      describe_top_sources(summarize_monthly_data(ga_data)[1])
-      temp_url = "https://www.google.com/"
+      describe_top_sources(summarize_monthly_data(ga_data, event_data)[1])
+      
       temp_url = "https://bizbuddyv1-ppcbuddy.streamlit.app/"
-
-      st.markdown("Search and social ads are key to driving traffic, helping businesses reach people actively searching or discovering new products on social platforms. Check out these tools to help you get going.")
-      #Button links
+      st.markdown("Search and social ads are key to driving traffic. Check out these tools to help you get going.")
       st.link_button("Paid Search - Helper", temp_url)
       st.link_button("Social Ads - Helper", temp_url)
 
-
-   ###landing page analysis section
+   # Landing page analysis section
    st.divider()
-   
    col3, col4 = st.columns(2)
    with col3:
       st.markdown("<h3 style='text-align: center;'>Individual Page Overview</h3>", unsafe_allow_html=True)
    
-      # Ensure the 'Date' column is in the correct format
+      # Filter the last 30 days data
       ga_data['Date'] = pd.to_datetime(ga_data['Date'], errors='coerce').dt.date
-      
-      # Get the date 30 days ago
       today = date.today()
       start_of_period = today - timedelta(days=30)
-      
-      # Filter data for the last 30 days
       last_30_days_data = ga_data[ga_data['Date'] >= start_of_period]
-      landing_page_summary = summarize_landing_pages(last_30_days_data)[1]
       
-      # Display the DataFrame for landing page performance
+      # Get landing page summary (now includes leads)
+      landing_page_summary = summarize_landing_pages(last_30_days_data, event_data)[1]
       generate_page_summary(landing_page_summary)
       
       llm_input = st.session_state.get("page_summary_llm", "")
       response = query_gpt("Provide insights based on the following page performance data, note that there is no CTAs on any page besides the Home. We need to think of ways to drive more people to the contact page. State only the bullets, no pre text. Limit your response to 2-3 bullet points:", llm_input)
+      
       st.markdown("### Insights from AI")
       st.markdown(response)
    
@@ -128,9 +120,9 @@ def main():
       st.markdown("<h3 style='text-align: center;'>Search Query Analysis</h3>", unsafe_allow_html=True)
       sq_col1, sq_col2 = st.columns(2)
    with sq_col1:
-      st.markdown("These are all the search terms that your website has shown up for in the search results. The Google search engine shows websites based on the relevance of a websites information as it realtes to the search terms.")
+      st.markdown("These are all the search terms that your website has shown up for in the search results. The Google search engine shows websites based on the relevance of a website's information as it relates to the search terms.")
       search_data = fetch_search_console_data()
-      st.dataframe(search_data['Search Query'], use_container_width = True)
+      st.dataframe(search_data['Search Query'], use_container_width=True)
       
    with sq_col2:
       seo_insights = generate_seo_insights(search_data)
