@@ -206,11 +206,15 @@ def summarize_monthly_data(acquisition_data, event_data):
     for col in numeric_cols:
         monthly_data[col] = pd.to_numeric(monthly_data[col], errors='coerce').fillna(0)
     
-    # Merge with event data to include leads
+    # Merge with event data to include leads (Event Count)
     monthly_data = monthly_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
 
-    # Fill missing values in Event Count with 0 for pages without leads
+    # Handle missing Event Count values (set them to 0 if there are missing leads)
     monthly_data['Event Count'].fillna(0, inplace=True)
+
+    # Check if the 'Event Count' column is now numeric
+    if not pd.api.types.is_numeric_dtype(monthly_data['Event Count']):
+        raise ValueError("Event Count column contains non-numeric data.")
 
     # Calculate total metrics for the last 30 days
     total_visitors = monthly_data["Total Visitors"].sum()
@@ -227,7 +231,7 @@ def summarize_monthly_data(acquisition_data, event_data):
         "Value": [total_visitors, new_visitors, total_sessions, total_leads, avg_time_on_site]
     })
     
-    # Summarize acquisition metrics
+    # Summarize acquisition metrics (using Event Count for leads)
     acquisition_summary = monthly_data.groupby("Session Source").agg(
         Visitors=("Total Visitors", "sum"),
         Sessions=("Sessions", "sum"),
@@ -235,7 +239,6 @@ def summarize_monthly_data(acquisition_data, event_data):
     ).reset_index()
     
     return summary_df, acquisition_summary
-
 def summarize_last_month_data(acquisition_data, event_data):
     # Ensure the Date column is in datetime format, then convert to date
     if 'Date' not in acquisition_data.columns:
