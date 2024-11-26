@@ -55,6 +55,7 @@ def main():
    search_data = fetch_search_console_data()
 
    st.write(ga_data)
+   st.write(ga_data['Sessions'].sum())
    
    # First column - GA4 Metrics and Insights
    col1, col2 = st.columns(2)
