@@ -209,10 +209,10 @@ def summarize_monthly_data(acquisition_data, event_data):
     # Merge with event data to include leads (Event Count)
     monthly_data = monthly_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
 
-    # Handle missing Event Count values (set them to 0 if there are missing leads)
-    monthly_data['Event Count'].fillna(0, inplace=True)
+    # Convert 'Event Count' to numeric, coerce non-numeric values to NaN, then fill NaN with 0
+    monthly_data['Event Count'] = pd.to_numeric(monthly_data['Event Count'], errors='coerce').fillna(0)
 
-    # Check if the 'Event Count' column is now numeric
+    # Check if the 'Event Count' column is numeric after conversion
     if not pd.api.types.is_numeric_dtype(monthly_data['Event Count']):
         raise ValueError("Event Count column contains non-numeric data.")
 
@@ -239,6 +239,8 @@ def summarize_monthly_data(acquisition_data, event_data):
     ).reset_index()
     
     return summary_df, acquisition_summary
+
+
 def summarize_last_month_data(acquisition_data, event_data):
     # Ensure the Date column is in datetime format, then convert to date
     if 'Date' not in acquisition_data.columns:
