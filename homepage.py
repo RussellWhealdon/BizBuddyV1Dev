@@ -65,6 +65,8 @@ def main():
       
       # Display GA4 metrics (Updated with the new leads data)
       generate_all_metrics_copy(current_summary, last_month_summary)
+
+      st.write(last_month_summary)
       
       # LLM insights based on GA data
       ga_llm_prompt = """
