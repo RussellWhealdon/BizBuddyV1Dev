@@ -106,7 +106,7 @@ def main():
       last_30_days_data = landing_page_data[landing_page_data['Date'] >= start_of_period]
       
       # Get landing page summary (now includes leads)
-      landing_page_summary = summarize_landing_pages(last_30_days_data, event_data)[1]
+      landing_page_summary = summarize_landing_pages(last_30_days_data, event_data)
       generate_page_summary(landing_page_summary)
       
       llm_input = st.session_state.get("page_summary_llm", "")
