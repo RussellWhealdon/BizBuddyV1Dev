@@ -52,6 +52,8 @@ def main():
 
     df_30_days = fetch_metrics_by_source(start_date_30_days, end_date_today)
     
+    st.write(df_30_days)
+    
     # Fetch data for the last month (from 60 days ago to 30 days ago)
     start_date_60_days = "60daysAgo"
     end_date_30_days = "30daysAgo"
