@@ -247,12 +247,6 @@ def summarize_monthly_data(acquisition_data, event_data):
     
     acquisition_data['Date'] = pd.to_datetime(acquisition_data['Date'], errors='coerce').dt.date
 
-    # Get the date 30 days ago
-    today = date.today()
-    start_of_period = today - timedelta(days=30)
-    
-    # Filter data for the last 30 days
-    monthly_data = acquisition_data[acquisition_data['Date'] >= start_of_period]
     
     # Check if required columns are in the dataframe
     required_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration", "Session Source"]
@@ -305,18 +299,6 @@ def summarize_last_month_data(acquisition_data, event_data):
         raise ValueError("Data does not contain a 'Date' column.")
     
     acquisition_data['Date'] = pd.to_datetime(acquisition_data['Date'], errors='coerce').dt.date
-
-    # Calculate the first and last day of the previous month
-    today = date.today()
-    first_day_of_this_month = today.replace(day=1)
-    last_day_of_last_month = first_day_of_this_month - timedelta(days=1)
-    first_day_of_last_month = last_day_of_last_month.replace(day=1)
-    
-    # Filter data for the previous month
-    last_month_data = acquisition_data[
-        (acquisition_data['Date'] >= first_day_of_last_month) & 
-        (acquisition_data['Date'] <= last_day_of_last_month)
-    ]
     
     # Check if required columns are in the dataframe
     required_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration", "Session Source"]
@@ -392,7 +374,7 @@ def generate_all_metrics_copy(current_summary_df, last_month_summary_df):
 
         # Calculate the percentage change
         if last_month_value > 0:
-            percentage_change = ((current_value - last_month_value) / last_month_value) * 100
+            percentage_change = ((current_value - last_month_value) / last_month_value)
         else:
             percentage_change = 0  # Avoid division by zero
         
