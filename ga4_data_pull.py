@@ -81,7 +81,7 @@ def fetch_metrics_by_landing_page(start_date, end_date):
             Metric(name="averageSessionDuration"),
             Metric(name="newUsers"),
         ],
-        date_ranges=[DateRange(start_date=start_date, end_date=today)],  # Define date range
+        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],  # Define date range
     )
 
     response = client.run_report(request)
@@ -129,7 +129,7 @@ def fetch_metrics_by_event(start_date, end_date):
         metrics=[
             Metric(name="eventCount"),  # Focus on the event count
         ],
-        date_ranges=[DateRange(start_date=start_date, end_date=today)],  # Define date range
+        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],  # Define date range
     )
 
     response = client.run_report(request)
