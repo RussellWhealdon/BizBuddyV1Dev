@@ -240,13 +240,12 @@ def summarize_landing_pages(acquisition_data, event_data):
 
 
 # Get this months summary
-def summarize_monthly_data(acquisition_data, event_data):
+def summarize_monthly_data(monthly_data, event_data):
     # Ensure the Date column is in datetime format, then convert to date
-    if 'Date' not in acquisition_data.columns:
+    if 'Date' not in monthly_data.columns:
         raise ValueError("Data does not contain a 'Date' column.")
     
-    acquisition_data['Date'] = pd.to_datetime(acquisition_data['Date'], errors='coerce').dt.date
-
+    monthly_data['Date'] = pd.to_datetime(acquisition_data['Date'], errors='coerce').dt.date
     
     # Check if required columns are in the dataframe
     required_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration", "Session Source"]
