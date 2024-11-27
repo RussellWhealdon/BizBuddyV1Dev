@@ -46,6 +46,11 @@ def display_report_with_llm(summary_func, llm_prompt):
 
 def main():
    # Fetch both GA data and Search Console data
+   # Fetch data from GA and Event data
+   source_data = fetch_metrics_by_source()
+   landing_page_data = fetch_metrics_by_landing_page()
+   event_data = fetch_metrics_by_event()
+   
    search_data = fetch_search_console_data()
 
    # First column - GA4 Metrics and Insights
@@ -55,8 +60,8 @@ def main():
       st.markdown("<h3 style='text-align: center;'>Web Performance Overview</h3>", unsafe_allow_html=True)
       
       # Summarize monthly data with leads now included
-      current_summary = summarize_monthly_data(ga_data, event_data)[0]
-      last_month_summary = summarize_last_month_data(ga_data, event_data)[0]
+      current_summary = summarize_monthly_data(source_data, event_data)[0]
+      last_month_summary = summarize_last_month_data(source_data, event_data)[0]
       
       # Display GA4 metrics (Updated with the new leads data)
       generate_all_metrics_copy(current_summary, last_month_summary)
@@ -79,9 +84,9 @@ def main():
       st.markdown("<h3 style='text-align: center;'>Acquisition Overview</h3>", unsafe_allow_html=True)
       acq_col1, acq_col2 = st.columns(2)
    with acq_col1:
-      plot_acquisition_pie_chart_plotly(summarize_monthly_data(ga_data, event_data)[1])
+      plot_acquisition_pie_chart_plotly(summarize_monthly_data(source_data, event_data)[1])
    with acq_col2:
-      describe_top_sources(summarize_monthly_data(ga_data, event_data)[1])
+      describe_top_sources(summarize_monthly_data(source_data, event_data)[1])
       
       temp_url = "https://bizbuddyv1-ppcbuddy.streamlit.app/"
       st.markdown("Search and social ads are key to driving traffic. Check out these tools to help you get going.")
@@ -95,10 +100,10 @@ def main():
       st.markdown("<h3 style='text-align: center;'>Individual Page Overview</h3>", unsafe_allow_html=True)
    
       # Filter the last 30 days data
-      ga_data['Date'] = pd.to_datetime(ga_data['Date'], errors='coerce').dt.date
+      landing_page_data['Date'] = pd.to_datetime(landing_page_data['Date'], errors='coerce').dt.date
       today = date.today()
       start_of_period = today - timedelta(days=30)
-      last_30_days_data = ga_data[ga_data['Date'] >= start_of_period]
+      last_30_days_data = landing_page_data[landing_page_data['Date'] >= start_of_period]
       
       # Get landing page summary (now includes leads)
       landing_page_summary = summarize_landing_pages(last_30_days_data, event_data)[1]
