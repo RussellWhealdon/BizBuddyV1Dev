@@ -65,6 +65,8 @@ def fetch_metrics_by_source(start_date, end_date):
     
     # Process data for easier handling
     df_source_metrics.sort_values(by='Session Source', inplace=True)
+
+    df_source_metrics['Date'] = pd.to_datetime(df_source_metrics['Date']).dt.date
     
     return df_source_metrics
 
