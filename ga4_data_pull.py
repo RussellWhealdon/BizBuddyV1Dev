@@ -27,7 +27,7 @@ def fetch_metrics_by_source(start_date, end_date):
             Metric(name="averageSessionDuration"),
             Metric(name="newUsers"),
         ],
-        date_ranges=[DateRange(start_date=start_date, end_date=today)],  # Define date range
+        date_ranges=[DateRange(start_date=start_date, end_date=end_date)],  # Define date range
     )
 
     response = client.run_report(request)
