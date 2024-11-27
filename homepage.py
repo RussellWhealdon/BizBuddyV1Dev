@@ -46,7 +46,7 @@ def display_report_with_llm(summary_func, llm_prompt):
 
 def main():
     # Fetch data for the last 30 days (from 30 days ago to today)
-    today = date.today()
+    today = "today"
     start_date_30_days = "30daysAgo"
     end_date_today = today
 
