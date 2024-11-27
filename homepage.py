@@ -52,7 +52,9 @@ def main():
 
     df_30_days = fetch_metrics_by_source(start_date_30_days, end_date_today)
     
-    st.write(df_30_days)
+    st.write(df_30_days['Sessions'].sum())
+    st.write(df_30_days['Date'].min())
+    st.write(df_30_days['Date'].max())
     
     # Fetch data for the last month (from 60 days ago to 30 days ago)
     start_date_60_days = "60daysAgo"
@@ -61,6 +63,8 @@ def main():
     df_60_to_30_days = fetch_metrics_by_source(start_date_60_days, end_date_30_days)
 
     st.write(df_60_to_30_days['Sessions'].sum())
+    st.write(df_60_to_30_days['Date'].min())
+    st.write(df_60_to_30_days['Date'].max())
 
     # Fetch event data (generate leads)
     event_data = fetch_metrics_by_event(start_date_30_days, end_date_today)  # Add this line to fetch event data
