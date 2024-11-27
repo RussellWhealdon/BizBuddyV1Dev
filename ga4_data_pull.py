@@ -19,6 +19,7 @@ today = date.today().strftime("%Y-%m-%d")
 # Get start date
 start_date = "30daysAgo"
 
+# Get traffic by source
 def fetch_metrics_by_source():
     # Define the request to pull data aggregated by source
     request = RunReportRequest(
@@ -68,6 +69,94 @@ def fetch_metrics_by_source():
     df_source_metrics.sort_values(by='Session Source', inplace=True)
     
     return df_source_metrics
+
+# Get data by landing page
+def fetch_metrics_by_landing_page():
+    # Define the request to pull data aggregated by landing page
+    request = RunReportRequest(
+        property=f"properties/{property_id}",
+        dimensions=[Dimension(name="pagePath")],  # Only group by landing page
+        metrics=[
+            Metric(name="activeUsers"),
+            Metric(name="sessions"),
+            Metric(name="screenPageViews"),
+            Metric(name="bounceRate"),
+            Metric(name="averageSessionDuration"),
+            Metric(name="newUsers"),
+        ],
+        date_ranges=[DateRange(start_date=start_date, end_date=today)],  # Define date range
+    )
+
+    response = client.run_report(request)
+    
+    # Parse the response and create the dataframe for landing page-level metrics
+    rows = []
+    for row in response.rows:
+        page_path = row.dimension_values[0].value
+        
+        # Convert all metrics to numeric values (with coercion to handle non-numeric data)
+        active_users = pd.to_numeric(row.metric_values[0].value, errors='coerce')
+        sessions = pd.to_numeric(row.metric_values[1].value, errors='coerce')
+        pageviews = pd.to_numeric(row.metric_values[2].value, errors='coerce')
+        bounce_rate = pd.to_numeric(row.metric_values[3].value, errors='coerce')
+        avg_session_duration = pd.to_numeric(row.metric_values[4].value, errors='coerce')
+        new_users = pd.to_numeric(row.metric_values[5].value, errors='coerce')
+        
+        rows.append([
+            page_path, active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
+        ])
+    
+    # Create DataFrame for metrics by landing page
+    df_landing_page_metrics = pd.DataFrame(rows, columns=[
+        'Page Path', 'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
+    ])
+    
+    # Convert all numeric columns to proper numeric types
+    numeric_cols = ['Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users']
+    for col in numeric_cols:
+        df_landing_page_metrics[col] = pd.to_numeric(df_landing_page_metrics[col], errors='coerce')
+    
+    # Process data for easier handling
+    df_landing_page_metrics.sort_values(by='Page Path', inplace=True)
+    
+    return df_landing_page_metrics
+
+
+#  Get Conversions
+def fetch_metrics_by_event():
+    # Define the request to pull data aggregated by event name
+    request = RunReportRequest(
+        property=f"properties/{property_id}",
+        dimensions=[Dimension(name="eventName")],  # Group by event name
+        metrics=[
+            Metric(name="eventCount"),  # Focus on the event count
+        ],
+        date_ranges=[DateRange(start_date=start_date, end_date=today)],  # Define date range
+    )
+
+    response = client.run_report(request)
+    
+    # Parse the response and create the dataframe for event-level metrics
+    rows = []
+    for row in response.rows:
+        event_name = row.dimension_values[0].value
+        
+        # Convert event count to numeric (with coercion to handle non-numeric data)
+        event_count = pd.to_numeric(row.metric_values[0].value, errors='coerce')
+        
+        rows.append([event_name, event_count])
+    
+    # Create DataFrame for metrics by event name
+    df_event_metrics = pd.DataFrame(rows, columns=['Event Name', 'Event Count'])
+    
+    # Convert the 'Event Count' to numeric
+    df_event_metrics['Event Count'] = pd.to_numeric(df_event_metrics['Event Count'], errors='coerce')
+    
+    # Sort data for easier handling
+    df_event_metrics.sort_values(by='Event Count', ascending=False, inplace=True)
+    
+    return df_event_metrics
+
 
 
 #### Old data fetch formula
