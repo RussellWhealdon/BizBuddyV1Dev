@@ -69,9 +69,7 @@ def fetch_metrics_by_source(start_date, end_date):
     return df_source_metrics
 
 # Get data by landing page
-def fetch_metrics_by_landing_page():
-    start_date = "30daysAgo"
-    end_date = "today"
+def fetch_metrics_by_landing_page(start_date, end_date):
     # Define the request to pull data aggregated by landing page
     request = RunReportRequest(
         property=f"properties/{property_id}",
