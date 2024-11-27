@@ -61,7 +61,7 @@ def main():
     # Fetch event data (generate leads)
     event_data = fetch_metrics_by_event(start_date_30_days, end_date_today)  # Add this line to fetch event data
 
-    lp_df_30_days = fetch_metrics_by_landingpage(start_date_30_days, end_date_today)
+    lp_df_30_days = fetch_metrics_by_landing_page(start_date_30_days, end_date_today)
    
     # First column - GA4 Metrics and Insights
     col1, col2 = st.columns(2)
