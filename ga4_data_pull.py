@@ -71,13 +71,12 @@ def fetch_metrics_by_source():
     
     return df_source_metrics
 
-
 # Get data by landing page
 def fetch_metrics_by_landing_page():
     # Define the request to pull data aggregated by landing page
     request = RunReportRequest(
         property=f"properties/{property_id}",
-        dimensions=[Dimension(name="pagePath")],  # Only group by landing page
+        dimensions=[Dimension(name="pagePath"), Dimension(name="date")],  # Added 'date' dimension
         metrics=[
             Metric(name="activeUsers"),
             Metric(name="sessions"),
@@ -95,6 +94,7 @@ def fetch_metrics_by_landing_page():
     rows = []
     for row in response.rows:
         page_path = row.dimension_values[0].value
+        date = row.dimension_values[1].value  # Capture the date
         
         # Convert all metrics to numeric values (with coercion to handle non-numeric data)
         active_users = pd.to_numeric(row.metric_values[0].value, errors='coerce')
@@ -105,12 +105,12 @@ def fetch_metrics_by_landing_page():
         new_users = pd.to_numeric(row.metric_values[5].value, errors='coerce')
         
         rows.append([
-            page_path, active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
+            date, page_path, active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
         ])
     
     # Create DataFrame for metrics by landing page
     df_landing_page_metrics = pd.DataFrame(rows, columns=[
-        'Page Path', 'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
+        'Date', 'Page Path', 'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
     ])
     
     # Convert all numeric columns to proper numeric types
@@ -129,7 +129,7 @@ def fetch_metrics_by_event():
     # Define the request to pull data aggregated by event name
     request = RunReportRequest(
         property=f"properties/{property_id}",
-        dimensions=[Dimension(name="eventName")],  # Group by event name
+        dimensions=[Dimension(name="eventName"), Dimension(name="date")],  # Added 'date' dimension
         metrics=[
             Metric(name="eventCount"),  # Focus on the event count
         ],
@@ -142,14 +142,15 @@ def fetch_metrics_by_event():
     rows = []
     for row in response.rows:
         event_name = row.dimension_values[0].value
+        date = row.dimension_values[1].value  # Capture the date
         
         # Convert event count to numeric (with coercion to handle non-numeric data)
         event_count = pd.to_numeric(row.metric_values[0].value, errors='coerce')
         
-        rows.append([event_name, event_count])
+        rows.append([date, event_name, event_count])
     
     # Create DataFrame for metrics by event name
-    df_event_metrics = pd.DataFrame(rows, columns=['Event Name', 'Event Count'])
+    df_event_metrics = pd.DataFrame(rows, columns=['Date', 'Event Name', 'Event Count'])
     
     # Convert the 'Event Count' to numeric
     df_event_metrics['Event Count'] = pd.to_numeric(df_event_metrics['Event Count'], errors='coerce')
@@ -158,6 +159,7 @@ def fetch_metrics_by_event():
     df_event_metrics.sort_values(by='Event Count', ascending=False, inplace=True)
     
     return df_event_metrics
+
 
 # Summarize acquisition data
 def summarize_acquisition_sources(acquisition_data, event_data):
