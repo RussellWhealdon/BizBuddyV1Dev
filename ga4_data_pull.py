@@ -206,7 +206,7 @@ def summarize_acquisition_sources(acquisition_data, event_data):
 # Get landing page summary
 def summarize_landing_pages(acquisition_data, event_data):
     # Check if required columns are in the dataframe
-    required_cols = ["Page Path", "Sessions", "Bounce Rate", "Total Visitors", "Pageviews", "Average Session Duration"]
+    required_cols = ["Sessions", "Bounce Rate", "Total Visitors", "Pageviews", "Average Session Duration"]
     if not all(col in acquisition_data.columns for col in required_cols):
         raise ValueError("Data does not contain required columns.")
     
@@ -215,20 +215,26 @@ def summarize_landing_pages(acquisition_data, event_data):
     for col in numeric_cols:
         acquisition_data[col] = pd.to_numeric(acquisition_data[col], errors='coerce').fillna(0)
 
-    # Merge with event data to include leads
-    page_summary = acquisition_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
+    # Filter event data to include only "generate_lead" events
+    event_data_filtered = event_data[event_data['Event Name'] == 'generate_lead']
 
-    # Fill missing values in Event Count with 0 for pages without leads
-    page_summary['Event Count'].fillna(0, inplace=True)
+    # Sum the "Event Count" for "generate_lead" events to get total leads
+    total_leads = event_data_filtered['Event Count'].sum()
 
-    # Group by Page Path to get aggregated metrics
-    page_summary = page_summary.groupby("Page Path").agg(
+    # Add a new column "Leads" to the acquisition data and set it to 0 by default
+    acquisition_data['Leads'] = 0
+    
+    # Set the "Leads" column for the Contact page
+    acquisition_data.loc[acquisition_data['Session Source'] == 'Contact', 'Leads'] = total_leads
+    
+    # Group by Page Path (if you want to include "Page Path" in the output) to get aggregated metrics
+    page_summary = acquisition_data.groupby("Session Source").agg(
         Sessions=("Sessions", "sum"),
         Total_Visitors=("Total Visitors", "sum"),
         Pageviews=("Pageviews", "sum"),
         Avg_Session_Duration=("Average Session Duration", "mean"),
         Bounce_Rate=("Bounce Rate", "mean"),
-        Conversions=("Event Count", "sum")  # Use Event Count for conversions (leads)
+        Conversions=("Leads", "sum")  # Use Leads column for conversions
     ).reset_index()
 
     # Calculate Conversion Rate
@@ -238,6 +244,7 @@ def summarize_landing_pages(acquisition_data, event_data):
     page_summary = page_summary.sort_values(by="Sessions", ascending=False)
     
     return page_summary
+
 
 # Get this months summary
 def summarize_monthly_data(acquisition_data, event_data):
