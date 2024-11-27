@@ -239,7 +239,6 @@ def summarize_landing_pages(acquisition_data, event_data):
     
     return page_summary
 
-
 # Get this months summary
 def summarize_monthly_data(acquisition_data, event_data):
     # Ensure the Date column is in datetime format, then convert to date
@@ -264,18 +263,23 @@ def summarize_monthly_data(acquisition_data, event_data):
     numeric_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration"]
     for col in numeric_cols:
         monthly_data[col] = pd.to_numeric(monthly_data[col], errors='coerce').fillna(0)
+
+    # Filter event data to include only "generate_lead" events and calculate total leads
+    event_data_filtered = event_data[event_data['Event Name'] == 'generate_lead']
+
+    # Sum the "Event Count" for "generate_lead" events to get total leads
+    total_leads = event_data_filtered['Event Count'].sum()
+
+    # Add a new column "Leads" to the acquisition data and set it to 0 by default
+    monthly_data['Leads'] = 0
     
-    # Merge with event data to include leads (Event Count)
-    monthly_data = monthly_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
-
-    # Convert 'Event Count' to numeric, coerce non-numeric values to NaN, then fill NaN with 0
-    monthly_data['Event Count'] = pd.to_numeric(monthly_data['Event Count'], errors='coerce').fillna(0)
-
+    # Set the "Leads" column for the Contact page
+    monthly_data.loc[monthly_data['Session Source'] == 'Contact', 'Leads'] = total_leads
+    
     # Calculate total metrics for the last 30 days
     total_visitors = monthly_data["Total Visitors"].sum()
     new_visitors = monthly_data["New Users"].sum()
     total_sessions = monthly_data["Sessions"].sum()
-    total_leads = monthly_data["Event Count"].sum()  # Sum of Event Count for leads
 
     # Calculate average metrics for the last 30 days
     avg_time_on_site = monthly_data["Average Session Duration"].mean().round(2)
@@ -290,11 +294,10 @@ def summarize_monthly_data(acquisition_data, event_data):
     acquisition_summary = monthly_data.groupby("Session Source").agg(
         Visitors=("Total Visitors", "sum"),
         Sessions=("Sessions", "sum"),
-        Leads=("Event Count", "sum")  # Use Event Count for conversions (leads)
+        Leads=("Leads", "sum")  # Sum of leads for the Contact page
     ).reset_index()
     
     return summary_df, acquisition_summary
-
 
 # Summarize last month data
 def summarize_last_month_data(acquisition_data, event_data):
