@@ -47,14 +47,14 @@ def display_report_with_llm(summary_func, llm_prompt):
 def main():
     # Fetch data for the last 30 days (from 30 days ago to today)
     today = date.today()
-    start_date_30_days = today - timedelta(days=30)
+    start_date_30_days = "30daysAgo"
     end_date_today = today
 
     df_30_days = fetch_metrics_by_source(start_date_30_days.strftime('%Y-%m-%d'), end_date_today.strftime('%Y-%m-%d'))
     
     # Fetch data for the last month (from 60 days ago to 30 days ago)
-    start_date_60_days = today - timedelta(days=60)
-    end_date_30_days = today - timedelta(days=30)
+    start_date_60_days = "60daysAgo"
+    end_date_30_days = "30daysAgo"
 
     df_60_to_30_days = fetch_metrics_by_source(start_date_60_days.strftime('%Y-%m-%d'), end_date_30_days.strftime('%Y-%m-%d'))
 
