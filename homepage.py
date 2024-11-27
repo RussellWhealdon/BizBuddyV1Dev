@@ -45,12 +45,11 @@ def display_report_with_llm(summary_func, llm_prompt):
 
 
 def main():
-    # Fetch data for the last 30 days (from 30 days ago to today)
-    today = "today"
+    # Fetch data for the last 30 days (from 30 days ago to yesterday)
     start_date_30_days = "30daysAgo"
-    end_date_today = today
+    end_date_yesterday = "yesterday"
 
-    df_30_days = fetch_metrics_by_source(start_date_30_days, end_date_today)
+    df_30_days = fetch_metrics_by_source(start_date_30_days, end_date_yesterday)
     
     st.write(df_30_days['Sessions'].sum())
     st.write(df_30_days['Date'].min())
@@ -67,9 +66,9 @@ def main():
     st.write(df_60_to_30_days['Date'].max())
 
     # Fetch event data (generate leads)
-    event_data = fetch_metrics_by_event(start_date_30_days, end_date_today)  # Add this line to fetch event data
+    event_data = fetch_metrics_by_event(start_date_30_days, end_date_yesterday)  # Add this line to fetch event data
 
-    lp_df_30_days = fetch_metrics_by_landing_page(start_date_30_days, end_date_today)
+    lp_df_30_days = fetch_metrics_by_landing_page(start_date_30_days, end_date_yesterday)
    
     # First column - GA4 Metrics and Insights
     col1, col2 = st.columns(2)
