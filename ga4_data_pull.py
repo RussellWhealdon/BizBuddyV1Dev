@@ -245,7 +245,7 @@ def summarize_monthly_data(monthly_data, event_data):
     if 'Date' not in monthly_data.columns:
         raise ValueError("Data does not contain a 'Date' column.")
     
-    monthly_data['Date'] = pd.to_datetime(acquisition_data['Date'], errors='coerce').dt.date
+    monthly_data['Date'] = pd.to_datetime(monthly_data['Date'], errors='coerce').dt.date
     
     # Check if required columns are in the dataframe
     required_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration", "Session Source"]
