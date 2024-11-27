@@ -24,7 +24,7 @@ def fetch_metrics_by_source():
     # Define the request to pull data aggregated by source
     request = RunReportRequest(
         property=f"properties/{property_id}",
-        dimensions=[Dimension(name="sessionSource")],  # Only group by source
+        dimensions=[Dimension(name="sessionSource"), Dimension(name="date")],  # Added 'date' dimension
         metrics=[
             Metric(name="activeUsers"),
             Metric(name="sessions"),
@@ -42,6 +42,7 @@ def fetch_metrics_by_source():
     rows = []
     for row in response.rows:
         session_source = row.dimension_values[0].value
+        date = row.dimension_values[1].value  # Capture the date
         
         # Convert all metrics to numeric values (with coercion to handle non-numeric data)
         active_users = pd.to_numeric(row.metric_values[0].value, errors='coerce')
@@ -52,12 +53,12 @@ def fetch_metrics_by_source():
         new_users = pd.to_numeric(row.metric_values[5].value, errors='coerce')
         
         rows.append([
-            session_source, active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
+            date, session_source, active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
         ])
     
     # Create DataFrame for metrics by source
     df_source_metrics = pd.DataFrame(rows, columns=[
-        'Session Source', 'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
+        'Date', 'Session Source', 'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
     ])
     
     # Convert all numeric columns to proper numeric types
@@ -69,6 +70,7 @@ def fetch_metrics_by_source():
     df_source_metrics.sort_values(by='Session Source', inplace=True)
     
     return df_source_metrics
+
 
 # Get data by landing page
 def fetch_metrics_by_landing_page():
