@@ -61,6 +61,8 @@ def main():
     # Fetch event data (generate leads)
     event_data = fetch_metrics_by_event(start_date_30_days, end_date_today)  # Add this line to fetch event data
 
+    lp_df_30_days = fetch_metrics_by_landingpage(start_date_30_days, end_date_today)
+   
     # First column - GA4 Metrics and Insights
     col1, col2 = st.columns(2)
    
@@ -111,7 +113,7 @@ def main():
         st.markdown("<h3 style='text-align: center;'>Individual Page Overview</h3>", unsafe_allow_html=True)
     
         # Get landing page summary (now includes leads)
-        landing_page_summary = summarize_landing_pages(df_30_days, event_data)[1]
+        landing_page_summary = summarize_landing_pages(lp_df_30_days, event_data)[1]
         generate_page_summary(landing_page_summary)
         
         llm_input = st.session_state.get("page_summary_llm", "")
