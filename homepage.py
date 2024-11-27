@@ -113,7 +113,7 @@ def main():
         st.markdown("<h3 style='text-align: center;'>Individual Page Overview</h3>", unsafe_allow_html=True)
     
         # Get landing page summary (now includes leads)
-        landing_page_summary = summarize_landing_pages(lp_df_30_days, event_data)[1]
+        landing_page_summary = summarize_landing_pages(lp_df_30_days, event_data)
         generate_page_summary(landing_page_summary)
         
         llm_input = st.session_state.get("page_summary_llm", "")
