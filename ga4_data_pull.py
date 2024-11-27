@@ -373,7 +373,7 @@ def generate_all_metrics_copy(current_summary_df, last_month_summary_df):
 
         # Calculate the percentage change
         if last_month_value > 0:
-            percentage_change = ((current_value - last_month_value) / last_month_value)
+            percentage_change = ((current_value - last_month_value) / last_month_value) * 100
         else:
             percentage_change = 0  # Avoid division by zero
         
