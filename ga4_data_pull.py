@@ -157,99 +157,9 @@ def fetch_metrics_by_event():
     
     return df_event_metrics
 
-
-
-#### Old data fetch formula
-
-# def fetch_ga4_extended_data():
-#     request = RunReportRequest(
-#         property=f"properties/{property_id}",
-#         dimensions=[
-#             Dimension(name="date"),
-#             Dimension(name="pagePath"),
-#             Dimension(name="sessionSource"),
-#             Dimension(name="firstUserCampaignName"),
-#             Dimension(name="firstUserSourceMedium"),
-#             Dimension(name="landingPagePlusQueryString"),
-#         ],
-#         metrics=[
-#             Metric(name="activeUsers"),
-#             Metric(name="sessions"),
-#             Metric(name="screenPageViews"),
-#             Metric(name="bounceRate"),
-#             Metric(name="averageSessionDuration"),
-#             Metric(name="newUsers"),
-#         ],
-#         date_ranges=[DateRange(start_date=start_date, end_date=today)],  # Define date range
-#     )
-    
-#     response = client.run_report(request)
-    
-#     # Parse the response and create the main DataFrame for traffic data
-#     rows = []
-#     for row in response.rows:
-#         date = row.dimension_values[0].value
-#         page_path = row.dimension_values[1].value
-#         session_source = row.dimension_values[2].value
-#         campaign_name = row.dimension_values[3].value
-#         source_medium = row.dimension_values[4].value
-#         lp_query = row.dimension_values[5].value
-            
-#         active_users = row.metric_values[0].value
-#         sessions = row.metric_values[1].value
-#         pageviews = row.metric_values[2].value
-#         bounce_rate = row.metric_values[3].value
-#         avg_session_duration = row.metric_values[4].value
-#         new_users = row.metric_values[5].value
-        
-#         rows.append([
-#             date, page_path, session_source, campaign_name, source_medium, lp_query,
-#             active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
-#         ])
-    
-#     # Create DataFrame for traffic data (excluding Event Name and Event Count)
-#     df_traffic = pd.DataFrame(rows, columns=[
-#         'Date', 'Page Path', 'Session Source', 'Campaign Name', 'Source/Medium', 'Lp/Query',
-#         'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
-#     ])
-    
-#     # Process date columns for easier handling
-#     df_traffic['Date'] = pd.to_datetime(df_traffic['Date'])
-#     df_traffic.sort_values(by='Date', inplace=True)
-
-#     # Now create a DataFrame for Event Name and Event Count to calculate leads
-#     request_events = RunReportRequest(
-#         property=f"properties/{property_id}",
-#         dimensions=[
-#             Dimension(name="eventName"),
-#             Dimension(name="pagePath"),
-#         ],
-#         metrics=[
-#             Metric(name="eventCount"),
-#         ],
-#         date_ranges=[DateRange(start_date=start_date, end_date=today)],
-#     )
-
-#     response_events = client.run_report(request_events)
-
-#     # Parse the event data response for leads
-#     event_rows = []
-#     for row in response_events.rows:
-#         event_name = row.dimension_values[0].value
-#         page_path = row.dimension_values[1].value
-#         event_count = row.metric_values[0].value
-        
-#         # Only keep events with 'generate_lead' name
-#         if event_name == "generate_lead":
-#             event_rows.append([page_path, event_count])
-
-#     # Create DataFrame for events
-#     df_events = pd.DataFrame(event_rows, columns=['Page Path', 'Event Count'])
-    
-#     return df_traffic, df_events
-
-# Get summary of acquisition sources
+# Summarize acquisition data
 def summarize_acquisition_sources(acquisition_data, event_data):
+    # Ensure the Date column is in datetime format and convert to date
     acquisition_data['Date'] = pd.to_datetime(acquisition_data['Date'], errors='coerce').dt.date
 
     # Get the date 30 days ago
@@ -265,10 +175,10 @@ def summarize_acquisition_sources(acquisition_data, event_data):
         raise ValueError("Data does not contain required columns.")
     
     # Convert columns to numeric, if possible, and fill NaNs
-    acquisition_data["Sessions"] = pd.to_numeric(acquisition_data["Sessions"], errors='coerce').fillna(0)
-    acquisition_data["Bounce Rate"] = pd.to_numeric(acquisition_data["Bounce Rate"], errors='coerce').fillna(0)
-
-    # Merge with event data to include leads
+    monthly_data["Sessions"] = pd.to_numeric(monthly_data["Sessions"], errors='coerce').fillna(0)
+    monthly_data["Bounce Rate"] = pd.to_numeric(monthly_data["Bounce Rate"], errors='coerce').fillna(0)
+    
+    # Merge the traffic data with the event data to include leads
     monthly_data = monthly_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
 
     # Fill missing values in Event Count with 0 for pages without leads
@@ -281,13 +191,14 @@ def summarize_acquisition_sources(acquisition_data, event_data):
         Conversions=("Event Count", "sum")  # Use Event Count for conversions (leads)
     ).reset_index()
 
-    # Calculate Conversion Rate
+    # Calculate Conversion Rate (%) for each source
     source_summary["Conversion Rate (%)"] = (source_summary["Conversions"] / source_summary["Sessions"] * 100).round(2)
 
     # Sort by Sessions in descending order
     source_summary = source_summary.sort_values(by="Sessions", ascending=False)
     
     return source_summary
+
 
 def summarize_landing_pages(acquisition_data, event_data):
     # Check if required columns are in the dataframe
@@ -324,65 +235,48 @@ def summarize_landing_pages(acquisition_data, event_data):
     
     return page_summary
 
-def summarize_monthly_data(acquisition_data, event_data):
-    # Ensure the Date column is in datetime format, then convert to date
-    if 'Date' not in acquisition_data.columns:
-        raise ValueError("Data does not contain a 'Date' column.")
-    
-    acquisition_data['Date'] = pd.to_datetime(acquisition_data['Date'], errors='coerce').dt.date
-
-    # Get the date 30 days ago
-    today = date.today()
-    start_of_period = today - timedelta(days=30)
-    
-    # Filter data for the last 30 days
-    monthly_data = acquisition_data[acquisition_data['Date'] >= start_of_period]
-    
+# summarize Landing Pages
+def summarize_landing_pages(acquisition_data, event_data):
     # Check if required columns are in the dataframe
-    required_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration", "Session Source"]
-    if not all(col in monthly_data.columns for col in required_cols):
+    required_cols = ["Page Path", "Sessions", "Bounce Rate", "Total Visitors", "Pageviews", "Average Session Duration"]
+    if not all(col in acquisition_data.columns for col in required_cols):
         raise ValueError("Data does not contain required columns.")
     
     # Convert columns to numeric, if possible, and fill NaNs
-    numeric_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration"]
+    numeric_cols = ["Sessions", "Bounce Rate", "Total Visitors", "Pageviews", "Average Session Duration"]
     for col in numeric_cols:
-        monthly_data[col] = pd.to_numeric(monthly_data[col], errors='coerce').fillna(0)
+        acquisition_data[col] = pd.to_numeric(acquisition_data[col], errors='coerce').fillna(0)
+
+    # Merge with event data to include leads
+    page_summary = acquisition_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
+
+    # Fill missing values in Event Count with 0 for pages without leads
+    page_summary['Event Count'].fillna(0, inplace=True)
     
-    # Merge with event data to include leads (Event Count)
-    monthly_data = monthly_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
-
-    # Convert 'Event Count' to numeric, coerce non-numeric values to NaN, then fill NaN with 0
-    monthly_data['Event Count'] = pd.to_numeric(monthly_data['Event Count'], errors='coerce').fillna(0)
-
-    # Check if the 'Event Count' column is numeric after conversion
-    if not pd.api.types.is_numeric_dtype(monthly_data['Event Count']):
-        raise ValueError("Event Count column contains non-numeric data.")
-
-    # Calculate total metrics for the last 30 days
-    total_visitors = monthly_data["Total Visitors"].sum()
-    new_visitors = monthly_data["New Users"].sum()
-    total_sessions = monthly_data["Sessions"].sum()
-    total_leads = monthly_data["Event Count"].sum()  # Sum of Event Count for leads
-
-    # Calculate average metrics for the last 30 days
-    avg_time_on_site = monthly_data["Average Session Duration"].mean().round(2)
+    # Set the 'Conversions' column to 0 for all pages except the Contact page
+    page_summary['Conversions'] = page_summary.apply(
+        lambda row: row['Event Count'] if row['Page Path'] == '/contact' else 0, axis=1
+    )
     
-    # Create a summary DataFrame
-    summary_df = pd.DataFrame({
-        "Metric": ["Total Visitors", "New Visitors", "Total Sessions", "Total Leads", "Average Session Duration"],
-        "Value": [total_visitors, new_visitors, total_sessions, total_leads, avg_time_on_site]
-    })
-    
-    # Summarize acquisition metrics (using Event Count for leads)
-    acquisition_summary = monthly_data.groupby("Session Source").agg(
-        Visitors=("Total Visitors", "sum"),
+    # Group by Page Path to get aggregated metrics
+    page_summary = page_summary.groupby("Page Path").agg(
         Sessions=("Sessions", "sum"),
-        Leads=("Event Count", "sum")  # Use Event Count for conversions (leads)
+        Total_Visitors=("Total Visitors", "sum"),
+        Pageviews=("Pageviews", "sum"),
+        Avg_Session_Duration=("Average Session Duration", "mean"),
+        Bounce_Rate=("Bounce Rate", "mean"),
+        Conversions=("Conversions", "sum")  # Sum Conversions (leads) for the Contact page
     ).reset_index()
+
+    # Calculate Conversion Rate
+    page_summary["Conversion Rate (%)"] = (page_summary["Conversions"] / page_summary["Sessions"] * 100).round(2)
+
+    # Sort by Sessions in descending order
+    page_summary = page_summary.sort_values(by="Sessions", ascending=False)
     
-    return summary_df, acquisition_summary
+    return page_summary
 
-
+# Summarize last month data
 def summarize_last_month_data(acquisition_data, event_data):
     # Ensure the Date column is in datetime format, then convert to date
     if 'Date' not in acquisition_data.columns:
@@ -415,8 +309,13 @@ def summarize_last_month_data(acquisition_data, event_data):
     # Merge with event data to include leads (Event Count)
     last_month_data = last_month_data.merge(event_data[['Page Path', 'Event Count']], on='Page Path', how='left')
 
-    # Convert 'Event Count' to numeric, coerce non-numeric values to NaN, then fill NaN with 0
-    last_month_data['Event Count'] = pd.to_numeric(last_month_data['Event Count'], errors='coerce').fillna(0)
+    # Fill missing values in Event Count with 0 for pages without leads
+    last_month_data['Event Count'].fillna(0, inplace=True)
+
+    # Set the 'Conversions' column to 0 for all pages except the Contact page
+    last_month_data['Conversions'] = last_month_data.apply(
+        lambda row: row['Event Count'] if row['Page Path'] == '/contact' else 0, axis=1
+    )
 
     # Check if the 'Event Count' column is numeric after conversion
     if not pd.api.types.is_numeric_dtype(last_month_data['Event Count']):
@@ -426,7 +325,7 @@ def summarize_last_month_data(acquisition_data, event_data):
     total_visitors = last_month_data["Total Visitors"].sum()
     new_visitors = last_month_data["New Users"].sum()
     total_sessions = last_month_data["Sessions"].sum()
-    total_leads = last_month_data["Event Count"].sum()  # Sum of Event Count for leads
+    total_leads = last_month_data["Conversions"].sum()  # Sum of Conversions for leads
 
     # Calculate average metrics for last month
     avg_time_on_site = last_month_data["Average Session Duration"].mean().round(2)
@@ -441,13 +340,12 @@ def summarize_last_month_data(acquisition_data, event_data):
     acquisition_summary = last_month_data.groupby("Session Source").agg(
         Visitors=("Total Visitors", "sum"),
         Sessions=("Sessions", "sum"),
-        Leads=("Event Count", "sum")  # Use Event Count for conversions (leads)
+        Leads=("Conversions", "sum")  # Use Conversions for leads
     ).reset_index()
     
     return summary_df, acquisition_summary
 
-
-
+# Generate all metrics
 def generate_all_metrics_copy(current_summary_df, last_month_summary_df):
     # List of metrics and their descriptions
     metrics = {
@@ -457,26 +355,34 @@ def generate_all_metrics_copy(current_summary_df, last_month_summary_df):
         "Total Leads": "the number of leads generated this month.",
         "Average Session Duration": "the average amount of time users spent on your site per session."
     }
+    
     st.markdown(
-    "<span style='font-size:25px;'>📊 **Data Overview: Last 30 Days**</span>", 
-    unsafe_allow_html=True
+        "<span style='font-size:25px;'>📊 **Data Overview: Last 30 Days**</span>", 
+        unsafe_allow_html=True
     )
+    
     for metric_name, description in metrics.items():
         # Extract metric values for the current and last month
         current_value = current_summary_df.loc[current_summary_df['Metric'] == metric_name, 'Value'].values[0]
         last_month_value = last_month_summary_df.loc[last_month_summary_df['Metric'] == metric_name, 'Value'].values[0]
         
+        # For "Total Leads", make sure it only counts the leads from the Contact page
+        if metric_name == "Total Leads":
+            current_value = current_summary_df.loc[current_summary_df['Metric'] == "Total Leads", 'Value'].values[0]
+            last_month_value = last_month_summary_df.loc[last_month_summary_df['Metric'] == "Total Leads", 'Value'].values[0]
+
         # Calculate the percentage change
         if last_month_value > 0:
             percentage_change = ((current_value - last_month_value) / last_month_value) * 100
         else:
             percentage_change = 0  # Avoid division by zero
         
+        # Determine the direction of change (up or down)
         change_direction = "up" if percentage_change > 0 else "down"
         percentage_change = abs(percentage_change)
         color = "green" if change_direction == "up" else "red"  # Green for positive, red for negative
         
-        # Customize the metric display
+        # Customize the metric display for "Average Session Duration"
         if metric_name == "Average Session Duration":
             display_metric = f"**Average Time on Site: {round(current_value)} seconds**"
         else:
@@ -489,6 +395,7 @@ def generate_all_metrics_copy(current_summary_df, last_month_summary_df):
             f"<span style='color:{color};'>{percentage_change:.2f}%</span> from last month.</span>", 
             unsafe_allow_html=True
         )
+
 
 def plot_acquisition_pie_chart_plotly(acquisition_summary):
     # Filter data for pie chart
