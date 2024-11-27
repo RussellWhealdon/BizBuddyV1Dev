@@ -42,12 +42,13 @@ def fetch_metrics_by_source():
     for row in response.rows:
         session_source = row.dimension_values[0].value
         
-        active_users = row.metric_values[0].value
-        sessions = row.metric_values[1].value
-        pageviews = row.metric_values[2].value
-        bounce_rate = row.metric_values[3].value
-        avg_session_duration = row.metric_values[4].value
-        new_users = row.metric_values[5].value
+        # Convert all metrics to numeric values (with coercion to handle non-numeric data)
+        active_users = pd.to_numeric(row.metric_values[0].value, errors='coerce')
+        sessions = pd.to_numeric(row.metric_values[1].value, errors='coerce')
+        pageviews = pd.to_numeric(row.metric_values[2].value, errors='coerce')
+        bounce_rate = pd.to_numeric(row.metric_values[3].value, errors='coerce')
+        avg_session_duration = pd.to_numeric(row.metric_values[4].value, errors='coerce')
+        new_users = pd.to_numeric(row.metric_values[5].value, errors='coerce')
         
         rows.append([
             session_source, active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
@@ -58,13 +59,15 @@ def fetch_metrics_by_source():
         'Session Source', 'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
     ])
     
+    # Convert all numeric columns to proper numeric types
+    numeric_cols = ['Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users']
+    for col in numeric_cols:
+        df_source_metrics[col] = pd.to_numeric(df_source_metrics[col], errors='coerce')
+    
     # Process data for easier handling
     df_source_metrics.sort_values(by='Session Source', inplace=True)
     
     return df_source_metrics
-
-
-
 
 
 #### Old data fetch formula
