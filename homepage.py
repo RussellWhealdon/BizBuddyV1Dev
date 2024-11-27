@@ -58,6 +58,9 @@ def main():
 
     df_60_to_30_days = fetch_metrics_by_source(start_date_60_days.strftime('%Y-%m-%d'), end_date_30_days.strftime('%Y-%m-%d'))
 
+    # Fetch event data (generate leads)
+    event_data = fetch_metrics_by_event()  # Add this line to fetch event data
+
     # First column - GA4 Metrics and Insights
     col1, col2 = st.columns(2)
    
