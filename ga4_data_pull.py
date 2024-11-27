@@ -16,11 +16,8 @@ client = BetaAnalyticsDataClient.from_service_account_info(service_account_info)
 # Get todays date
 today = date.today().strftime("%Y-%m-%d")
 
-# Get start date
-start_date = "30daysAgo"
-
 # Get traffic by source
-def fetch_metrics_by_source():
+def fetch_metrics_by_source(start_date, end_date):
     # Define the request to pull data aggregated by source
     request = RunReportRequest(
         property=f"properties/{property_id}",
