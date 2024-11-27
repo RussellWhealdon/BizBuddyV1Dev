@@ -292,22 +292,22 @@ def summarize_monthly_data(monthly_data, event_data):
     
     return summary_df, acquisition_summary
 
-def summarize_last_month_data(acquisition_data, event_data):
+def summarize_last_month_data(prev_monthly_data, event_data):
     # Ensure the Date column is in datetime format, then convert to date
-    if 'Date' not in acquisition_data.columns:
+    if 'Date' not in prev_monthly_data.columns:
         raise ValueError("Data does not contain a 'Date' column.")
     
-    acquisition_data['Date'] = pd.to_datetime(acquisition_data['Date'], errors='coerce').dt.date
+    prev_monthly_data['Date'] = pd.to_datetime(prev_monthly_data['Date'], errors='coerce').dt.date
     
     # Check if required columns are in the dataframe
     required_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration", "Session Source"]
-    if not all(col in last_month_data.columns for col in required_cols):
+    if not all(col in prev_monthly_data.columns for col in required_cols):
         raise ValueError("Data does not contain required columns.")
     
     # Convert columns to numeric, if possible, and fill NaNs
     numeric_cols = ["Total Visitors", "New Users", "Sessions", "Average Session Duration"]
     for col in numeric_cols:
-        last_month_data[col] = pd.to_numeric(last_month_data[col], errors='coerce').fillna(0)
+        prev_monthly_data[col] = pd.to_numeric(prev_monthly_data[col], errors='coerce').fillna(0)
     
     # Filter event data to include only "generate_lead" events
     event_data_filtered = event_data[event_data['Event Name'] == 'generate_lead']
@@ -316,18 +316,18 @@ def summarize_last_month_data(acquisition_data, event_data):
     total_leads = event_data_filtered['Event Count'].sum()
 
     # Add a new column "Leads" to the acquisition data and set it to 0 by default
-    last_month_data['Leads'] = 0
+    prev_monthly_data['Leads'] = 0
     
     # Set the "Leads" column for the Contact page
-    last_month_data.loc[last_month_data['Session Source'] == 'Contact', 'Leads'] = total_leads
+    prev_monthly_data.loc[prev_monthly_data['Session Source'] == 'Contact', 'Leads'] = total_leads
     
     # Calculate total metrics for the last month
-    total_visitors = last_month_data["Total Visitors"].sum()
-    new_visitors = last_month_data["New Users"].sum()
-    total_sessions = last_month_data["Sessions"].sum()
+    total_visitors = prev_monthly_data["Total Visitors"].sum()
+    new_visitors = prev_monthly_data["New Users"].sum()
+    total_sessions = prev_monthly_data["Sessions"].sum()
 
     # Calculate average metrics for the last month
-    avg_time_on_site = last_month_data["Average Session Duration"].mean().round(2)
+    avg_time_on_site = prev_monthly_data["Average Session Duration"].mean().round(2)
     
     # Create a summary DataFrame
     summary_df = pd.DataFrame({
@@ -336,7 +336,7 @@ def summarize_last_month_data(acquisition_data, event_data):
     })
 
     # Summarize acquisition metrics (using Event Count for leads)
-    acquisition_summary = last_month_data.groupby("Session Source").agg(
+    acquisition_summary = prev_monthly_data.groupby("Session Source").agg(
         Visitors=("Total Visitors", "sum"),
         Sessions=("Sessions", "sum"),
         Leads=("Leads", "sum")  # Sum of leads for the Contact page
