@@ -59,18 +59,21 @@ def main():
     df_60_to_30_days = fetch_metrics_by_source(start_date_60_days.strftime('%Y-%m-%d'), end_date_30_days.strftime('%Y-%m-%d'))
 
     # Fetch event data (generate leads)
-    event_data = fetch_metrics_by_event()  # Add this line to fetch event data
+    event_data = fetch_metrics_by_event(start_date_30_days, end_date_today)  # Add this line to fetch event data
 
     # First column - GA4 Metrics and Insights
     col1, col2 = st.columns(2)
    
     with col1:
         st.markdown("<h3 style='text-align: center;'>Web Performance Overview</h3>", unsafe_allow_html=True)
+
+        # Fetch event data (generate leads)
+        last_month_event_data = fetch_metrics_by_event(start_date_60_days, start_date_30_days)  # Add this line to fetch event data
         
         # Summarize monthly data with leads now included (for the 30 days data)
         current_summary = summarize_monthly_data(df_30_days, event_data)[0]
-        last_month_summary = summarize_last_month_data(df_60_to_30_days, event_data)[0]
-        
+        last_month_summary = summarize_last_month_data(df_60_to_30_days, last_month_event_data)[0]
+       
         # Display GA4 metrics (Updated with the new leads data)
         generate_all_metrics_copy(current_summary, last_month_summary)
         
