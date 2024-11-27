@@ -202,38 +202,35 @@ def summarize_acquisition_sources(acquisition_data, event_data):
     
     return source_summary
 
-# Get landing page summary
+# Summarize Landing Pages
 def summarize_landing_pages(acquisition_data, event_data):
-    # Check if required columns are in the dataframe
-    required_cols = ["Sessions", "Bounce Rate", "Total Visitors", "Pageviews", "Average Session Duration"]
-    if not all(col in acquisition_data.columns for col in required_cols):
-        raise ValueError("Data does not contain required columns.")
+    # Ensure that 'Page Path' exists in acquisition_data or handle differently
+    if 'Page Path' not in acquisition_data.columns:
+        raise ValueError("Data does not contain a 'Page Path' column.")
     
     # Convert columns to numeric, if possible, and fill NaNs
     numeric_cols = ["Sessions", "Bounce Rate", "Total Visitors", "Pageviews", "Average Session Duration"]
     for col in numeric_cols:
         acquisition_data[col] = pd.to_numeric(acquisition_data[col], errors='coerce').fillna(0)
 
-    # Filter event data to include only "generate_lead" events
+    # Create a column for 'Leads', filtering event data where Event Name is 'generate_lead'
     event_data_filtered = event_data[event_data['Event Name'] == 'generate_lead']
-
-    # Sum the "Event Count" for "generate_lead" events to get total leads
-    total_leads = event_data_filtered['Event Count'].sum()
-
-    # Add a new column "Leads" to the acquisition data and set it to 0 by default
-    acquisition_data['Leads'] = 0
     
-    # Set the "Leads" column for the Contact page
-    acquisition_data.loc[acquisition_data['Page Path'] == 'Contacts', 'Leads'] = total_leads
+    # Ensure that 'Event Count' is numeric
+    event_data_filtered['Event Count'] = pd.to_numeric(event_data_filtered['Event Count'], errors='coerce').fillna(0)
     
-    # Group by Page Path (if you want to include "Page Path" in the output) to get aggregated metrics
+    # Create a new column for Leads and set it for Contact page only
+    acquisition_data['Leads'] = 0  # Initialize Leads to 0 for all pages
+    acquisition_data.loc[acquisition_data['Page Path'] == '/contact', 'Leads'] = event_data_filtered['Event Count'].sum()
+
+    # Group by Page Path to get aggregated metrics
     page_summary = acquisition_data.groupby("Page Path").agg(
         Sessions=("Sessions", "sum"),
         Total_Visitors=("Total Visitors", "sum"),
         Pageviews=("Pageviews", "sum"),
         Avg_Session_Duration=("Average Session Duration", "mean"),
         Bounce_Rate=("Bounce Rate", "mean"),
-        Conversions=("Leads", "sum")  # Use Leads column for conversions
+        Conversions=("Leads", "sum")  # Use 'Leads' for conversions
     ).reset_index()
 
     # Calculate Conversion Rate
