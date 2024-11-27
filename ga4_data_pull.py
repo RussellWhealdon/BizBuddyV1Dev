@@ -225,7 +225,7 @@ def summarize_landing_pages(acquisition_data, event_data):
     acquisition_data['Leads'] = 0
     
     # Set the "Leads" column for the Contact page
-    acquisition_data.loc[acquisition_data['Session Source'] == 'Contact', 'Leads'] = total_leads
+    acquisition_data.loc[acquisition_data['Page Path'] == 'Contacts', 'Leads'] = total_leads
     
     # Group by Page Path (if you want to include "Page Path" in the output) to get aggregated metrics
     page_summary = acquisition_data.groupby("Session Source").agg(
