@@ -19,17 +19,11 @@ today = date.today().strftime("%Y-%m-%d")
 # Get start date
 start_date = "30daysAgo"
 
-def fetch_ga4_extended_data():
+def fetch_metrics_by_source():
+    # Define the request to pull data aggregated by source
     request = RunReportRequest(
         property=f"properties/{property_id}",
-        dimensions=[
-            Dimension(name="date"),
-            Dimension(name="pagePath"),
-            Dimension(name="sessionSource"),
-            Dimension(name="firstUserCampaignName"),
-            Dimension(name="firstUserSourceMedium"),
-            Dimension(name="landingPagePlusQueryString"),
-        ],
+        dimensions=[Dimension(name="sessionSource")],  # Only group by source
         metrics=[
             Metric(name="activeUsers"),
             Metric(name="sessions"),
@@ -40,19 +34,14 @@ def fetch_ga4_extended_data():
         ],
         date_ranges=[DateRange(start_date=start_date, end_date=today)],  # Define date range
     )
-    
+
     response = client.run_report(request)
     
-    # Parse the response and create the main DataFrame for traffic data
+    # Parse the response and create the dataframe for source-level metrics
     rows = []
     for row in response.rows:
-        date = row.dimension_values[0].value
-        page_path = row.dimension_values[1].value
-        session_source = row.dimension_values[2].value
-        campaign_name = row.dimension_values[3].value
-        source_medium = row.dimension_values[4].value
-        lp_query = row.dimension_values[5].value
-            
+        session_source = row.dimension_values[0].value
+        
         active_users = row.metric_values[0].value
         sessions = row.metric_values[1].value
         pageviews = row.metric_values[2].value
@@ -61,50 +50,111 @@ def fetch_ga4_extended_data():
         new_users = row.metric_values[5].value
         
         rows.append([
-            date, page_path, session_source, campaign_name, source_medium, lp_query,
-            active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
+            session_source, active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
         ])
     
-    # Create DataFrame for traffic data (excluding Event Name and Event Count)
-    df_traffic = pd.DataFrame(rows, columns=[
-        'Date', 'Page Path', 'Session Source', 'Campaign Name', 'Source/Medium', 'Lp/Query',
-        'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
+    # Create DataFrame for metrics by source
+    df_source_metrics = pd.DataFrame(rows, columns=[
+        'Session Source', 'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
     ])
     
-    # Process date columns for easier handling
-    df_traffic['Date'] = pd.to_datetime(df_traffic['Date'])
-    df_traffic.sort_values(by='Date', inplace=True)
-
-    # Now create a DataFrame for Event Name and Event Count to calculate leads
-    request_events = RunReportRequest(
-        property=f"properties/{property_id}",
-        dimensions=[
-            Dimension(name="eventName"),
-            Dimension(name="pagePath"),
-        ],
-        metrics=[
-            Metric(name="eventCount"),
-        ],
-        date_ranges=[DateRange(start_date=start_date, end_date=today)],
-    )
-
-    response_events = client.run_report(request_events)
-
-    # Parse the event data response for leads
-    event_rows = []
-    for row in response_events.rows:
-        event_name = row.dimension_values[0].value
-        page_path = row.dimension_values[1].value
-        event_count = row.metric_values[0].value
-        
-        # Only keep events with 'generate_lead' name
-        if event_name == "generate_lead":
-            event_rows.append([page_path, event_count])
-
-    # Create DataFrame for events
-    df_events = pd.DataFrame(event_rows, columns=['Page Path', 'Event Count'])
+    # Process data for easier handling
+    df_source_metrics.sort_values(by='Session Source', inplace=True)
     
-    return df_traffic, df_events
+    return df_source_metrics
+
+
+
+
+
+#### Old data fetch formula
+
+# def fetch_ga4_extended_data():
+#     request = RunReportRequest(
+#         property=f"properties/{property_id}",
+#         dimensions=[
+#             Dimension(name="date"),
+#             Dimension(name="pagePath"),
+#             Dimension(name="sessionSource"),
+#             Dimension(name="firstUserCampaignName"),
+#             Dimension(name="firstUserSourceMedium"),
+#             Dimension(name="landingPagePlusQueryString"),
+#         ],
+#         metrics=[
+#             Metric(name="activeUsers"),
+#             Metric(name="sessions"),
+#             Metric(name="screenPageViews"),
+#             Metric(name="bounceRate"),
+#             Metric(name="averageSessionDuration"),
+#             Metric(name="newUsers"),
+#         ],
+#         date_ranges=[DateRange(start_date=start_date, end_date=today)],  # Define date range
+#     )
+    
+#     response = client.run_report(request)
+    
+#     # Parse the response and create the main DataFrame for traffic data
+#     rows = []
+#     for row in response.rows:
+#         date = row.dimension_values[0].value
+#         page_path = row.dimension_values[1].value
+#         session_source = row.dimension_values[2].value
+#         campaign_name = row.dimension_values[3].value
+#         source_medium = row.dimension_values[4].value
+#         lp_query = row.dimension_values[5].value
+            
+#         active_users = row.metric_values[0].value
+#         sessions = row.metric_values[1].value
+#         pageviews = row.metric_values[2].value
+#         bounce_rate = row.metric_values[3].value
+#         avg_session_duration = row.metric_values[4].value
+#         new_users = row.metric_values[5].value
+        
+#         rows.append([
+#             date, page_path, session_source, campaign_name, source_medium, lp_query,
+#             active_users, sessions, pageviews, bounce_rate, avg_session_duration, new_users
+#         ])
+    
+#     # Create DataFrame for traffic data (excluding Event Name and Event Count)
+#     df_traffic = pd.DataFrame(rows, columns=[
+#         'Date', 'Page Path', 'Session Source', 'Campaign Name', 'Source/Medium', 'Lp/Query',
+#         'Total Visitors', 'Sessions', 'Pageviews', 'Bounce Rate', 'Average Session Duration', 'New Users'
+#     ])
+    
+#     # Process date columns for easier handling
+#     df_traffic['Date'] = pd.to_datetime(df_traffic['Date'])
+#     df_traffic.sort_values(by='Date', inplace=True)
+
+#     # Now create a DataFrame for Event Name and Event Count to calculate leads
+#     request_events = RunReportRequest(
+#         property=f"properties/{property_id}",
+#         dimensions=[
+#             Dimension(name="eventName"),
+#             Dimension(name="pagePath"),
+#         ],
+#         metrics=[
+#             Metric(name="eventCount"),
+#         ],
+#         date_ranges=[DateRange(start_date=start_date, end_date=today)],
+#     )
+
+#     response_events = client.run_report(request_events)
+
+#     # Parse the event data response for leads
+#     event_rows = []
+#     for row in response_events.rows:
+#         event_name = row.dimension_values[0].value
+#         page_path = row.dimension_values[1].value
+#         event_count = row.metric_values[0].value
+        
+#         # Only keep events with 'generate_lead' name
+#         if event_name == "generate_lead":
+#             event_rows.append([page_path, event_count])
+
+#     # Create DataFrame for events
+#     df_events = pd.DataFrame(event_rows, columns=['Page Path', 'Event Count'])
+    
+#     return df_traffic, df_events
 
 # Get summary of acquisition sources
 def summarize_acquisition_sources(acquisition_data, event_data):
